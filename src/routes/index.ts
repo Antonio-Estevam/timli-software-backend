@@ -4,6 +4,7 @@ import professionalsRouter from './professionals'
 import availabilityRouter from './availability'
 import appointmentsRouter from './appointments'
 import { PrismaClient } from '@prisma/client'
+import { authenticate, authorize } from '../middlewares/authMiddleware'
 
 export default function(prisma: PrismaClient) {
   const router = Router()

@@ -3,6 +3,9 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import routes from './routes'
 import { setupSwagger } from './docs/swagger'
+import authRoutes from './routes/auth'
+import adminRoutes from './routes/admin'
+
 const prisma = new PrismaClient()
 const app = express()
 
@@ -14,9 +17,9 @@ app.use(cors({
 
 app.use(express.json())
 setupSwagger(app)
-
 app.use('/api', routes(prisma))
-
-app.get('/', (req, res) => res.json({ ok: true }))
+app.use('/api/auth', authRoutes)
+app.use('/api', adminRoutes)
+app.get('/api', (req, res) => res.json({ ok: true }))
 
 export default app
