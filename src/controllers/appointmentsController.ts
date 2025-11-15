@@ -59,10 +59,8 @@ export default class AppointmentsController {
         const start = DateTime.fromISO(`${a.date}T${a.time}`, { zone: timezone })
         return {
           id: a.id,
-          clientName: a.clientName,
-          clientPhone: a.clientPhone,
           service: { id: a.service.id, name: a.service.name, durationMin: a.service.durationMin, priceCents: a.service.priceCents },
-          professional: { id: a.professional.id, name: a.professional.name },
+          professional: { id: a.professional.id, name: a.professional },
           date: a.date, // original YYYY-MM-DD
           time: start.toFormat('HH:mm'), // formatado para fuso
           createdAt: createdAtLocal

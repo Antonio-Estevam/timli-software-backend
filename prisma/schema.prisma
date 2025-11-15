@@ -7,38 +7,60 @@ datasource db {
   url      = "postgresql://postgres:navy1995@localhost:5432/barbearia?schema=public"
 }
 
+enum UserRole {
+  ADMIN
+  PROFESSIONAL
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   name         String
   email        String   @unique
   passwordHash String
-  role         UserRole @default(CLIENT)
+  role         UserRole
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-}
 
-enum UserRole {
-  ADMIN
-  PROFESSIONAL
-  CLIENT
-}
-
-model Service {
-  id            Int                   @id @default(autoincrement())
-  name          String
-  durationMin   Int
-  priceCents    Int
-  professionals ProfessionalService[]
-  appointments  Appointment[]
+  professional Professional? // Relação 1:1 se for PROFESSIONAL
 }
 
 model Professional {
-  id           Int                   @id @default(autoincrement())
-  name         String
-  photoUrl     String?
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  photoUrl  String?
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user         User                  @relation(fields: [userId], references: [id])
   services     ProfessionalService[]
-  schedules    Schedule[] // availabilities (days & slots)
+  schedules    Schedule[]
   appointments Appointment[]
+}
+
+model Client {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  appointments Appointment[]
+}
+
+model Service {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  durationMin Int
+  priceCents  Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  professionals ProfessionalService[]
+  appointments  Appointment[]
 }
 
 model ProfessionalService {
@@ -55,22 +77,23 @@ model Schedule {
   id             Int          @id @default(autoincrement())
   professional   Professional @relation(fields: [professionalId], references: [id])
   professionalId Int
-  // ISO date (YYYY-MM-DD)
-  date           String
-  // start time in HH:MM (24h)
-  startTime      String
-  endTime        String
+  date           DateTime // dia disponível
+  startTime      String // HH:MM
+  endTime        String // HH:MM
 }
 
 model Appointment {
-  id             Int          @id @default(autoincrement())
-  clientName     String
-  clientPhone    String
-  service        Service      @relation(fields: [serviceId], references: [id])
-  serviceId      Int
-  professional   Professional @relation(fields: [professionalId], references: [id])
+  id             Int      @id @default(autoincrement())
+  clientId       Int
   professionalId Int
-  date           String // YYYY-MM-DD
-  time           String // HH:MM (start time)
-  createdAt      DateTime     @default(now())
+  serviceId      Int
+  date           DateTime // dia do agendamento
+  time           String // HH:MM (hora inicial)
+  duration       Int // duração em minutos
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  client       Client       @relation(fields: [clientId], references: [id])
+  professional Professional @relation(fields: [professionalId], references: [id])
+  service      Service      @relation(fields: [serviceId], references: [id])
 }

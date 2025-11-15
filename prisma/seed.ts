@@ -1,53 +1,90 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
+
 const prisma = new PrismaClient()
 
 async function main() {
-  // limpa (apenas para dev)
+  console.log('🧠 Limpando dados antigos...')
   await prisma.appointment.deleteMany()
-  await prisma.schedule.deleteMany()
-  await prisma.professionalService.deleteMany()
-  await prisma.professional.deleteMany()
   await prisma.service.deleteMany()
+  await prisma.professional.deleteMany()
+  await prisma.user.deleteMany()
+  await prisma.client.deleteMany()
 
+  console.log('👨‍🔧 Criando usuários...')
+  const adminPassword = await bcrypt.hash('admin123', 10)
+  const profPassword = await bcrypt.hash('barbeiro123', 10)
+
+  const admin = await prisma.user.create({
+    data: {
+      name: 'Administrador',
+      email: 'admin@barbearia.com',
+      passwordHash: adminPassword,
+      role: 'ADMIN'
+    }
+  })
+
+  const professionalUser = await prisma.user.create({
+    data: {
+      name: 'Carlos Barber',
+      email: 'carlos@barbearia.com',
+      passwordHash: profPassword,
+      role: 'PROFESSIONAL',
+      professional: {
+        create: {
+          bio: 'Especialista em cortes masculinos modernos'
+        }
+      }
+    },
+    include: { professional: true }
+  })
+
+  console.log('💈 Criando serviços...')
   const corte = await prisma.service.create({
-    data: { name: 'Corte', durationMin: 30, priceCents: 2500 }
+    data: {
+      name: 'Corte Masculino',
+      description: 'Corte com tesoura e máquina',
+      durationMin: 30,
+      priceCents: 50
+    }
   })
+
   const barba = await prisma.service.create({
-    data: { name: 'Barba', durationMin: 20, priceCents: 1500 }
+    data: {
+      name: 'Barba Completa',
+      description: 'Modelagem e acabamento de barba',
+      durationMin: 25,
+      priceCents: 35
+    }
   })
 
-  const prof1 = await prisma.professional.create({
-    data: { name: 'João', photoUrl: null }
-  })
-  const prof2 = await prisma.professional.create({
-    data: { name: 'Carlos', photoUrl: null }
-  })
-
-  await prisma.professionalService.createMany({
-    data: [
-      { professionalId: prof1.id, serviceId: corte.id },
-      { professionalId: prof1.id, serviceId: barba.id },
-      { professionalId: prof2.id, serviceId: corte.id }
-    ]
+  console.log('👤 Criando cliente...')
+  const clientePassword = await bcrypt.hash('cliente123', 10)
+  const cliente = await prisma.client.create({
+    data: {
+      name: 'João Silva',
+      email: 'joao@cliente.com',
+      passwordHash: clientePassword
+    }
   })
 
-  // cria schedules para os próximos dias
-  const today = new Date()
-  for (let d = 0; d < 7; d++) {
-    const date = new Date(today)
-    date.setDate(today.getDate() + d)
-    const yyyy = date.toISOString().slice(0,10)
-    await prisma.schedule.createMany({
-      data: [
-        { professionalId: prof1.id, date: yyyy, startTime: '09:00', endTime: '17:00' },
-        { professionalId: prof2.id, date: yyyy, startTime: '10:00', endTime: '18:00' }
-      ]
-    })
-  }
+  console.log('📅 Criando agendamento...')
+  await prisma.appointment.create({
+    data: {
+      clientId: cliente.id,
+      professionalId: professionalUser.professional?.id!,
+      serviceId: corte.id,
+      time: '14:00',
+      date: new Date('2025-11-12T14:00:00Z'),
+      duration: corte.durationMin
+    }
+  })
 
-  console.log('Seed completo.')
+  console.log('✅ Banco populado com sucesso!')
 }
 
 main()
-  .catch(e => { console.error(e); process.exit(1) })
-  .finally(async () => { await new PrismaClient().$disconnect() })
+  .catch((e) => console.error(e))
+  .finally(async () => {
+    await prisma.$disconnect()
+  })
